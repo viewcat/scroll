@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/jpeg" href="favicon.jpeg">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+        #setup {
+            position: absolute;
+            z-index: 10;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(20, 20, 20, 0.9);
+            padding: 30px;
+            border-radius: 10px;
+            color: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        #setup h2 {
+            margin-bottom: 15px;
+        }
+        .custom-file-upload {
+            display: inline-block;
+            padding: 12px 24px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .custom-file-upload:hover {
+            background: #0056b3;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        #grid-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            visibility: hidden;
+        }
+        .video-wrapper {
+            flex: 1;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            position: relative;
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Ensures portrait videos fill their 1/3 section completely */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="setup">
+        <h2>Portrait Video Grid</h2>
+        <p style="margin-bottom: 20px; color: #aaa;">Select a folder containing your portrait video files.</p>
+        <label class="custom-file-upload">
+            <input type="file" id="picker" webkitdirectory directory multiple accept="video/*">
+            Choose Video Folder
+        </label>
+    </div>
+
+    <div id="grid-container">
+        <div class="video-wrapper"><video id="vid0" autoplay muted playsinline></video></div>
+        <div class="video-wrapper"><video id="vid1" autoplay muted playsinline></video></div>
+        <div class="video-wrapper"><video id="vid2" autoplay muted playsinline></video></div>
+    </div>
+
+    <script>
+        const randStr = () => Math.random().toString(36).substring(2).toUpperCase();
+	    document.title = `${randStr()}${randStr()}${randStr()}`;
+        
+        const picker = document.getElementById('picker');
+        const setupDiv = document.getElementById('setup');
+        const gridContainer = document.getElementById('grid-container');
+        
+        const videoElements = [
+            document.getElementById('vid0'),
+            document.getElementById('vid1'),
+            document.getElementById('vid2')
+        ];
+
+        let allVideos = [];
+        let playlist = [];
+
+        picker.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            
+            // Filter to only include video files
+            allVideos = files.filter(file => file.type.startsWith('video/'));
+
+            if (allVideos.length < 3) {
+                alert('Please select a folder with at least 3 video files.');
+                return;
+            }
+
+            // Hide setup, show grid
+            setupDiv.style.display = 'none';
+            gridContainer.style.visibility = 'visible';
+
+            // Initialize playback
+            generateNewShufflePlaylist();
+            startInitialVideos();
+        });
+
+        // Fisher-Yates Shuffle Algorithm
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function generateNewShufflePlaylist() {
+            // Clone the master list and shuffle it
+            playlist = shuffle([...allVideos]);
+        }
+
+        function getNextVideoFile() {
+            if (playlist.length === 0) {
+                generateNewShufflePlaylist();
+            }
+            return playlist.shift();
+        }
+
+        function loadVideoIntoElement(videoElement) {
+            const nextFile = getNextVideoFile();
+            if (!nextFile) return;
+
+            // Revoke old object URL to prevent memory leaks
+            if (videoElement.src) {
+                URL.revokeObjectURL(videoElement.src);
+            }
+
+            // Create local URL for the file blob
+            videoElement.src = URL.createObjectURL(nextFile);
+            
+            // Attempt playback
+            videoElement.play().catch(err => {
+                console.log("Playback interrupted or required user interaction: ", err);
+            });
+        }
+
+        function startInitialVideos() {
+            videoElements.forEach((videoElement, index) => {
+                loadVideoIntoElement(videoElement);
+
+                // Listen for when this specific slot finishes playing
+                videoElement.addEventListener('ended', () => {
+                    loadVideoIntoElement(videoElement);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
