@@ -89,7 +89,7 @@
     <script>
         const randStr = () => Math.random().toString(36).substring(2).toUpperCase();
 	    document.title = `${randStr()}${randStr()}${randStr()}`;
-        
+
         const picker = document.getElementById('picker');
         const setupDiv = document.getElementById('setup');
         const gridContainer = document.getElementById('grid-container');
@@ -165,6 +165,9 @@
         function startInitialVideos() {
             videoElements.forEach((videoElement, index) => {
                 loadVideoIntoElement(videoElement);
+
+                 // Prevent the right-click menu on this video
+                videoElement.addEventListener('contextmenu', (e) => e.preventDefault());
 
                 // Listen for when this specific slot finishes playing
                 videoElement.addEventListener('ended', () => {
